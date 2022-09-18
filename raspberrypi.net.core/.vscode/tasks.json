@@ -1,0 +1,59 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "command": "dotnet",
+            "type": "shell",
+            "args": [
+                "build",
+                "${workspaceFolder}/raspberrypi.net.core.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "publish",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "publish",
+                "${workspaceFolder}/raspberrypi.net.core.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "watch",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "watch",
+                "run",
+                "--project",
+                "${workspaceFolder}/raspberrypi.net.core.csproj"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "RpiPublish",
+            "command": "sh",
+            "type": "shell",
+            "problemMatcher": "$msCompile",
+            "args": [
+                "-c",
+                "\"dotnet publish --self-contained -r linux-arm -c Debug -o ./bin/linux-arm/publish ./${workspaceFolderBasename}.csproj && rsync -rvuz ./bin/linux-arm/publish/ pi@raspberrypi:~/${workspaceFolderBasename}\""
+            ]
+        },
+        {
+            "label": "Echo VSCode Variables",
+            "type": "shell",
+            "command": "echo ${workspaceRoot} && echo ${workspaceFolder} && echo ${workspaceFolderBasename}",
+            "problemMatcher": [
+                "$msCompile"
+            ]
+        }
+    ]
+}

@@ -9,7 +9,7 @@ class Program
     private static ServiceClient _serviceClient;
     private const string _deviceId = "rpihome";
     private const string methodName = "TurnOnLight";
-    private const string _deviceConnectionString = "HostName=Reihax-IoT-Hub.azure-devices.net;DeviceId=rpihome;SharedAccessKey=KmxifXkLoU+ZbgG9IlzjkkiaUqfMOMrTMAlW8HUCe4U=";
+    private const string _deviceConnectionString = "HostName=Reihax-IoT-Hub-2.azure-devices.net;DeviceId=rpihome;SharedAccessKey=kULhrzx+ySUI9LmpuF/6UQkGyRB/ZpzVCQ/uwCm8FkM=";
 
     static async Task Main(string[] args)
     {

@@ -36,6 +36,16 @@
                 "${workspaceFolder}/raspberrypi.net.core.backend/raspberrypi.net.core.backend.csproj"
             ],
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "RpiPublish",
+            "command": "sh",
+            "type": "shell",
+            "problemMatcher": "$msCompile",
+            "args": [
+                "-c",
+                "\"dotnet publish --self-contained -r linux-arm -c Debug -o ./bin/linux-arm/publish ./raspberrypi.net.core/raspberrypi.net.core.csproj && rsync -rvuz ./bin/linux-arm/publish/ pi@raspberrypi:~/raspberrypi.net.core\""
+            ]
         }
     ]
 }

@@ -6,6 +6,7 @@ using Microsoft.Azure.Devices.Client;
 using Newtonsoft.Json;
 using raspberrypi.net.core.Models;
 using System.Text;
+using Microsoft.Azure.Devices.Shared;
 
 namespace raspberrypi.net.core;
 
@@ -17,22 +18,43 @@ class Program
     private static DeviceClient _deviceClient;
     private const double _temperatureThreshold = 40.0;
     public const string DeviceId = "rpihome";
+    static bool _sendCpuTemp = true;
 
     static async Task Main(string[] args)
     {
-        _deviceClient = DeviceClient.CreateFromConnectionString(
-            _deviceConnectionString, TransportType.Mqtt);
-        // Create a handler for the direct method call
-        _deviceClient.SetMethodHandlerAsync(nameof(TurnOnLight), TurnOnLight, null).Wait();
-        while (true)
+        try
         {
-            if (_rpiCpuTemp.IsAvailable)
+            _deviceClient = DeviceClient.CreateFromConnectionString(_deviceConnectionString, TransportType.Mqtt);
+            _deviceClient.SetMethodHandlerAsync(nameof(TurnOnLight), TurnOnLight, null).Wait();
+            await _deviceClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyChangedAsync, null).ConfigureAwait(false);
+    
+            var twin = await _deviceClient.GetTwinAsync();
+            Console.WriteLine($"Initial Twin: {twin.ToJson()}");
+    
+            var telemetryConfig = new TwinCollection();
+            telemetryConfig["sendFrequency"] = "5m";
+            var reportedProperties = new TwinCollection();
+            reportedProperties["telemetryConfig"] = telemetryConfig;
+
+            await _deviceClient.UpdateReportedPropertiesAsync(reportedProperties).ConfigureAwait(false);
+            Console.WriteLine("Waiting 30 seconds for IoT Hub Twin updates...");
+            await Task.Delay(3 * 1000);
+
+            while (true)
             {
-                Console.WriteLine($"{_messageId}:The CPU temperature at {DateTime.Now} is {_rpiCpuTemp.Temperature}");
-                await SendToIoTHub(_rpiCpuTemp.Temperature.DegreesCelsius);
-                Console.WriteLine("The device data has been sent");
+                if (!_sendCpuTemp)continue;
+                if (_rpiCpuTemp.IsAvailable)
+                {
+                    Console.WriteLine($"{_messageId}:The CPU temperature at {DateTime.Now} is {_rpiCpuTemp.Temperature}");
+                    await SendToIoTHub(_rpiCpuTemp.Temperature.DegreesCelsius);
+                    Console.WriteLine("The device data has been sent");
+                }
+                Thread.Sleep(5000); // Sleep for 5 seconds
             }
-            Thread.Sleep(5000); // Sleep for 5 seconds
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
         }
     }
 
@@ -55,8 +77,17 @@ class Program
                 Temperature = tempCelsius
             });
         var messageToSend = new Message(Encoding.UTF8.GetBytes(jsonData));
-        messageToSend.Properties.Add("TemperatureAlert", 
-                    (tempCelsius > _temperatureThreshold) ? "true" : "false");
+        messageToSend.Properties.Add("TemperatureAlert", (tempCelsius > _temperatureThreshold) ? "true" : "false");
         await _deviceClient.SendEventAsync(messageToSend).ConfigureAwait(false);
+    }
+
+    private static async Task OnDesiredPropertyChangedAsync(TwinCollection desiredProperties, object userContext)
+    {
+        Console.WriteLine($"New desired property is {desiredProperties.ToJson()}");
+        var reportedProperties = new TwinCollection();
+        var telemetryConfig = new TwinCollection();
+        telemetryConfig["status"] = "success";
+        reportedProperties["telemetryConfig"] = telemetryConfig;
+        await _deviceClient.UpdateReportedPropertiesAsync(reportedProperties).ConfigureAwait(false);
     }
 }

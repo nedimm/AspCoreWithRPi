@@ -17,6 +17,7 @@ class Program
             _serviceClient = ServiceClient.CreateFromConnectionString(_deviceConnectionString);
             await SendCloudToDeviceMessageAsync();
             await InvokeDirectMethod(methodName);   
+            await ReceiveDeliveryFeedback();
             Console.WriteLine("Direct method on Device called.");
         }catch(Exception ex){
             Console.WriteLine($"Could not invoke direct call: {ex.Message}");
@@ -39,5 +40,19 @@ class Program
         var message = new Message(Encoding.ASCII.GetBytes("This is a message from cloud."));
         message.Ack = DeliveryAcknowledgement.Full; // This is to request the feedback
         await _serviceClient.SendAsync(_deviceId, message);
+    }
+
+    private static async Task ReceiveDeliveryFeedback()
+    {
+        var feedbackReceiver = _serviceClient.GetFeedbackReceiver();
+        var tokenSource = new CancellationTokenSource();
+        var token = tokenSource.Token;
+        while (true)
+        {
+            var feedback = await feedbackReceiver.ReceiveAsync(token);
+            if (feedback == null) continue;
+            Console.WriteLine($"The feedback status is:{string.Join(",", feedback.Records.Select(s =>s.StatusCode))}");
+            await feedbackReceiver.CompleteAsync(feedback, token);
+        }
     }
 }

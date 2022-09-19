@@ -9,13 +9,16 @@ class Program
     private static ServiceClient _serviceClient;
     private const string _deviceId = "rpihome";
     private const string methodName = "TurnOnLight";
-    private const string _deviceConnectionString = "HostName=Reihax-IoT-Hub-2.azure-devices.net;DeviceId=rpihome;SharedAccessKey=kULhrzx+ySUI9LmpuF/6UQkGyRB/ZpzVCQ/uwCm8FkM=";
-
+    private const string _deviceConnectionString = "HostName=Reihax-IoT-Hub-2.azure-devices.net;SharedAccessKeyName=service;SharedAccessKey=HZLOwfewOWrzdzTzjZaS2oBwRVhbYQIgEH5RXKzgJYg=";
     static async Task Main(string[] args)
     {
-        _serviceClient = ServiceClient.CreateFromConnectionString(_deviceConnectionString);
-        await InvokeDirectMethod(methodName);
-        Console.WriteLine("Hello World!");
+        try{
+            _serviceClient = ServiceClient.CreateFromConnectionString(_deviceConnectionString);
+            await InvokeDirectMethod(methodName);   
+            Console.WriteLine("Direct message to Device sent.");
+        }catch(Exception ex){
+            Console.WriteLine($"Could not send direct message: {ex.Message}");
+        }
     }
 
     private static async Task InvokeDirectMethod(string methodName)
@@ -25,8 +28,7 @@ class Program
             ResponseTimeout = TimeSpan.FromSeconds(45)
         };
         invocation.SetPayloadJson("5");
-        var response = await _serviceClient.
-        InvokeDeviceMethodAsync(_deviceId, invocation);
+        var response = await _serviceClient.InvokeDeviceMethodAsync(_deviceId, invocation);
         Console.WriteLine(response.GetPayloadAsJson());
     }
 }

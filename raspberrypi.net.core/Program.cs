@@ -38,7 +38,10 @@ class Program
 
     private static Task<MethodResponse> TurnOnLight(MethodRequest methodRequest, object userContext)
     {
-        Console.WriteLine("Here is the call from cloud to turn on the light!");
+        var messageText = methodRequest.DataAsJson == "5" ? 
+                "Here is the direct method call from backend to turn on the light!" : 
+                "Here is the method call from cloud to turn on the light!";
+        Console.WriteLine(messageText);
         var result = "{\"result\":\"Executed direct method:" + methodRequest.Name + "\"}";
         return Task.FromResult(new MethodResponse(Encoding.
         UTF8.GetBytes(result), 200));

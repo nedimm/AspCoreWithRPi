@@ -18,16 +18,20 @@ class Program
     private static DeviceClient _deviceClient;
     private const double _temperatureThreshold = 40.0;
     public const string DeviceId = "rpihome";
+    static bool _enableDirectMethodInvocation = true;
     static bool _sendCpuTemp = true;
+    static bool _updateDeviceTwin = true;
+    static bool _receiveCloudToDeviceMessages = false;
 
     static async Task Main(string[] args)
     {
         try
         {
             _deviceClient = DeviceClient.CreateFromConnectionString(_deviceConnectionString, TransportType.Mqtt);
-            _deviceClient.SetMethodHandlerAsync(nameof(TurnOnLight), TurnOnLight, null).Wait();
+            EnableDirectMethodInvocation();
             await UpdateDeviceTwin().ConfigureAwait(false);
             await SendCpuTemperature();
+            await ReceiveCloudToDeviceMessageAsync();
         }
         catch (Exception ex)
         {
@@ -35,8 +39,15 @@ class Program
         }
     }
 
+    private static void EnableDirectMethodInvocation()
+    {
+        if (_enableDirectMethodInvocation)
+            _deviceClient.SetMethodHandlerAsync(nameof(TurnOnLight), TurnOnLight, null).Wait();
+    }
+
     private static async Task UpdateDeviceTwin()
     {
+        if (!_updateDeviceTwin)return;
         await _deviceClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyChangedAsync, null).ConfigureAwait(false);
         var twin = await _deviceClient.GetTwinAsync();
         Console.WriteLine($"Initial Twin: {twin.ToJson()}");
@@ -53,9 +64,9 @@ class Program
 
     private static async Task SendCpuTemperature()
     {
+        if (!_sendCpuTemp) return;
         while (true)
         {
-            if (!_sendCpuTemp) continue;
             if (_rpiCpuTemp.IsAvailable)
             {
                 Console.WriteLine($"{_messageId}:The CPU temperature at {DateTime.Now} is {_rpiCpuTemp.Temperature}");
@@ -101,6 +112,7 @@ class Program
 
     private static async Task ReceiveCloudToDeviceMessageAsync()
     {
+        if (!_receiveCloudToDeviceMessages)return;
         while (true)
         {
             var cloudMessage = await _deviceClient.ReceiveAsync();

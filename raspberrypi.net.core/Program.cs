@@ -26,35 +26,43 @@ class Program
         {
             _deviceClient = DeviceClient.CreateFromConnectionString(_deviceConnectionString, TransportType.Mqtt);
             _deviceClient.SetMethodHandlerAsync(nameof(TurnOnLight), TurnOnLight, null).Wait();
-            await _deviceClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyChangedAsync, null).ConfigureAwait(false);
-    
-            var twin = await _deviceClient.GetTwinAsync();
-            Console.WriteLine($"Initial Twin: {twin.ToJson()}");
-    
-            var telemetryConfig = new TwinCollection();
-            telemetryConfig["sendFrequency"] = "5m";
-            var reportedProperties = new TwinCollection();
-            reportedProperties["telemetryConfig"] = telemetryConfig;
-
-            await _deviceClient.UpdateReportedPropertiesAsync(reportedProperties).ConfigureAwait(false);
-            Console.WriteLine("Waiting 30 seconds for IoT Hub Twin updates...");
-            await Task.Delay(3 * 1000);
-
-            while (true)
-            {
-                if (!_sendCpuTemp)continue;
-                if (_rpiCpuTemp.IsAvailable)
-                {
-                    Console.WriteLine($"{_messageId}:The CPU temperature at {DateTime.Now} is {_rpiCpuTemp.Temperature}");
-                    await SendToIoTHub(_rpiCpuTemp.Temperature.DegreesCelsius);
-                    Console.WriteLine("The device data has been sent");
-                }
-                Thread.Sleep(5000); // Sleep for 5 seconds
-            }
+            await UpdateDeviceTwin().ConfigureAwait(false);
+            await SendCpuTemperature();
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
+        }
+    }
+
+    private static async Task UpdateDeviceTwin()
+    {
+        await _deviceClient.SetDesiredPropertyUpdateCallbackAsync(OnDesiredPropertyChangedAsync, null).ConfigureAwait(false);
+        var twin = await _deviceClient.GetTwinAsync();
+        Console.WriteLine($"Initial Twin: {twin.ToJson()}");
+
+        var telemetryConfig = new TwinCollection();
+        telemetryConfig["sendFrequency"] = "5m";
+        var reportedProperties = new TwinCollection();
+        reportedProperties["telemetryConfig"] = telemetryConfig;
+
+        await _deviceClient.UpdateReportedPropertiesAsync(reportedProperties).ConfigureAwait(false);
+        Console.WriteLine("Waiting 30 seconds for IoT Hub Twin updates...");
+        await Task.Delay(3 * 1000);
+    }
+
+    private static async Task SendCpuTemperature()
+    {
+        while (true)
+        {
+            if (!_sendCpuTemp) continue;
+            if (_rpiCpuTemp.IsAvailable)
+            {
+                Console.WriteLine($"{_messageId}:The CPU temperature at {DateTime.Now} is {_rpiCpuTemp.Temperature}");
+                await SendToIoTHub(_rpiCpuTemp.Temperature.DegreesCelsius);
+                Console.WriteLine("The device data has been sent");
+            }
+            Thread.Sleep(5000); // Sleep for 5 seconds
         }
     }
 
@@ -89,5 +97,16 @@ class Program
         telemetryConfig["status"] = "success";
         reportedProperties["telemetryConfig"] = telemetryConfig;
         await _deviceClient.UpdateReportedPropertiesAsync(reportedProperties).ConfigureAwait(false);
+    }
+
+    private static async Task ReceiveCloudToDeviceMessageAsync()
+    {
+        while (true)
+        {
+            var cloudMessage = await _deviceClient.ReceiveAsync();
+            if (cloudMessage == null) continue;
+            Console.WriteLine($"The received message is:{Encoding.ASCII.GetString(cloudMessage.GetBytes())}");
+            await _deviceClient.CompleteAsync(cloudMessage); // Send feedback
+        }
     }
 }

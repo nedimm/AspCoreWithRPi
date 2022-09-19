@@ -18,10 +18,10 @@ class Program
     private static DeviceClient _deviceClient;
     private const double _temperatureThreshold = 40.0;
     public const string DeviceId = "rpihome";
-    static bool _enableDirectMethodInvocation = true;
-    static bool _sendCpuTemp = true;
-    static bool _updateDeviceTwin = true;
-    static bool _receiveCloudToDeviceMessages = false;
+    static bool _enableDirectMethodInvocation = false;
+    static bool _sendCpuTemp = false;
+    static bool _updateDeviceTwin = false;
+    static bool _receiveCloudToDeviceMessages = true;
 
     static async Task Main(string[] args)
     {

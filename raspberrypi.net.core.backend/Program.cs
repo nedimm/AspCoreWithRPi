@@ -15,9 +15,9 @@ class Program
         try{
             _serviceClient = ServiceClient.CreateFromConnectionString(_deviceConnectionString);
             await InvokeDirectMethod(methodName);   
-            Console.WriteLine("Direct message to Device sent.");
+            Console.WriteLine("Direct method on Device called.");
         }catch(Exception ex){
-            Console.WriteLine($"Could not send direct message: {ex.Message}");
+            Console.WriteLine($"Could not invoke direct call: {ex.Message}");
         }
     }
 
@@ -29,6 +29,6 @@ class Program
         };
         invocation.SetPayloadJson("5");
         var response = await _serviceClient.InvokeDeviceMethodAsync(_deviceId, invocation);
-        Console.WriteLine(response.GetPayloadAsJson());
+        Console.WriteLine($"Response payload: {response.GetPayloadAsJson()}");
     }
 }
